@@ -18,6 +18,7 @@ const utils_1 = require("./utils");
 const simple_git_1 = __importDefault(require("simple-git"));
 const path_1 = __importDefault(require("path"));
 const files_1 = require("./files");
+const aws_1 = require("./aws");
 dotenv.config();
 const app = express();
 const cors = require('cors');
@@ -32,7 +33,9 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     yield (0, simple_git_1.default)().clone(repoUrl, path_1.default.join(__dirname, `/repos/${id}`));
     //getting all the files from the given path.
     const files = (0, files_1.getAllFiles)(path_1.default.join(__dirname, `/repos/${id}`));
-    console.log("file : ", files);
+    files.forEach((file) => __awaiter(void 0, void 0, void 0, function* () {
+        yield (0, aws_1.uploadFile)(file.slice(__dirname.length + 1), file);
+    }));
     res.status(200).json({
         id: id
     });

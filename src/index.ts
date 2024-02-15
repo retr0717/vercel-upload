@@ -1,13 +1,10 @@
-
-//console https://992382668968.signin.aws.amazon.com/console
-
-
 const express = require('express');
 const dotenv = require('dotenv');
 import {generate} from  './utils';
 import simpleGit from 'simple-git';
 import path from 'path';
 import { getAllFiles } from './files';
+import { uploadFile } from './aws';
 
 dotenv.config();
 
@@ -33,7 +30,10 @@ app.post("/deploy", async (req : any, res : any) => {
     //getting all the files from the given path.
     const files = getAllFiles(path.join(__dirname,  `/repos/${id}`));
 
-    console.log("file : ",files);
+    files.forEach(async file => {
+        await uploadFile(file.slice(__dirname.length + 1), file);
+    })
+
 
     res.status(200).json({
         id : id
