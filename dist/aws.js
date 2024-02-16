@@ -13,21 +13,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadFile = void 0;
-const aws_sdk_1 = require("aws-sdk");
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const fs_1 = __importDefault(require("fs"));
-const s3 = new aws_sdk_1.S3({
-    accessKeyId: process.env.ACCESS_KEY,
-    secretAccessKey: process.env.SECRET_KEY,
-    endpoint: "http://vercel-storage.s3-website-us-east-1.amazonaws.com"
+const s3Client = new S3Client({
+    region: 'us-east-1',
+    credentials: {
+        accessKeyId: process.env.ACCESS_KEY,
+        secretAccessKey: process.env.SECRET_KEY,
+    },
 });
 const uploadFile = (fileName, localFilePath) => __awaiter(void 0, void 0, void 0, function* () {
     const fileContent = fs_1.default.readFileSync(localFilePath);
-    const response = yield s3.upload({
+    const uploadParams = {
+        Bucket: 'vercel-storage',
+        Key: fileName,
         Body: fileContent,
-        Bucket: "vercel-storage",
-        Key: fileName
-    }).promise();
-    console.log(response);
+    };
+    try {
+        const response = yield s3Client.send(new PutObjectCommand(uploadParams));
+        console.log("File uploaded successfully. Response:", response);
+    }
+    catch (err) {
+        console.log(err);
+    }
 });
 exports.uploadFile = uploadFile;
 //# sourceMappingURL=aws.js.map

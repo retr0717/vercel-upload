@@ -19,12 +19,14 @@ const simple_git_1 = __importDefault(require("simple-git"));
 const path_1 = __importDefault(require("path"));
 const files_1 = require("./files");
 const aws_1 = require("./aws");
+const redis_1 = require("redis");
+const publisher = (0, redis_1.createClient)();
+publisher.connect();
 dotenv.config();
 const app = express();
 const cors = require('cors');
 app.use(cors());
 app.use(express.json());
-console.log(__dirname + "name");
 app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const repoUrl = req.body.repoUrl;
     console.log("repoUrl : ", repoUrl);
@@ -36,6 +38,9 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     files.forEach((file) => __awaiter(void 0, void 0, void 0, function* () {
         yield (0, aws_1.uploadFile)(file.slice(__dirname.length + 1), file);
     }));
+    //pushing the id to the queue.
+    publisher.lPush('build-queue', id);
+    //
     res.status(200).json({
         id: id
     });

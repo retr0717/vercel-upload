@@ -5,6 +5,10 @@ import simpleGit from 'simple-git';
 import path from 'path';
 import { getAllFiles } from './files';
 import { uploadFile } from './aws';
+import { createClient} from 'redis';
+
+const publisher = createClient();
+publisher.connect();
 
 dotenv.config();
 
@@ -14,8 +18,6 @@ const cors = require('cors');
 
 app.use(cors());
 app.use(express.json());
-
-console.log(__dirname+"name");
 
 app.post("/deploy", async (req : any, res : any) => {
 
@@ -34,6 +36,10 @@ app.post("/deploy", async (req : any, res : any) => {
         await uploadFile(file.slice(__dirname.length + 1), file);
     })
 
+    //pushing the id to the queue.
+    publisher.lPush('build-queue', id);
+
+    //
 
     res.status(200).json({
         id : id
