@@ -10,6 +10,9 @@ import { createClient} from 'redis';
 const publisher = createClient();
 publisher.connect();
 
+const subscriber = createClient();
+subscriber.connect();
+
 dotenv.config();
 
 const app = express();
@@ -18,6 +21,15 @@ const cors = require('cors');
 
 app.use(cors());
 app.use(express.json());
+
+app.get('/status', async (req:any , res : any) => {
+    const id = req.query.id;
+    const resposne = await subscriber.hGet("status", id as string);
+
+    res.json({
+        status : resposne
+    })
+})
 
 app.post("/deploy", async (req : any, res : any) => {
 
@@ -31,19 +43,27 @@ app.post("/deploy", async (req : any, res : any) => {
 
     //getting all the files from the given path.
     const files = getAllFiles(path.join(__dirname,  `/repos/${id}`));
+    
+    try
+    {
+        const uploadPromises = files.map(file => uploadFile(file.slice(__dirname.length + 1), file));
 
-    files.forEach(async file => {
-        await uploadFile(file.slice(__dirname.length + 1), file);
-    })
+        await Promise.all(uploadPromises);
 
-    //pushing the id to the queue.
-    publisher.lPush('build-queue', id);
+        //pushing the id to the queue.
+        publisher.lPush('build-queue', id);
 
-    //
+        //store the id with the current status in redis
+        publisher.hSet("status", id, "uploaded");
 
-    res.status(200).json({
-        id : id
-    })
+        res.status(200).json({
+            id : id
+        })
+    }
+    catch(err)
+    {
+        console.log("upload : ", err);
+    }
 })
 
 app.listen(process.env.PORT, () => {
